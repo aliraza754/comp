@@ -1,7 +1,10 @@
+import { rootCertificates } from 'node:tls';
+
 export type SslConfig =
   | undefined
   | { checkServerIdentity: () => undefined }
-  | { rejectUnauthorized: false };
+  | { rejectUnauthorized: false }
+  | { ca: string[]; checkServerIdentity: () => undefined };
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
 
@@ -15,6 +18,14 @@ function isLocalhostUrl(connectionString: string): boolean {
     // accidentally disable TLS verification.
     return false;
   }
+}
+
+// DATABASE_SSL_CA holds one extra root CA in PEM form, for databases whose
+// chain does not end at a root Node already trusts (for example Supabase).
+// Literal "\n" sequences are accepted so the PEM fits on one env-var line.
+function parseExtraCa(value: string | undefined): string | undefined {
+  const pem = value?.replace(/\\n/g, '\n').trim();
+  return pem && pem.includes('BEGIN CERTIFICATE') ? pem : undefined;
 }
 
 export function resolveSslConfig(
@@ -33,5 +44,10 @@ export function resolveSslConfig(
   // *replaces* Node's trust store rather than augmenting it, and the bundle
   // only contains regional RDS CAs (not Amazon Root CA 1), so RDS Proxy
   // chain validation failed at runtime (P1011 / TlsConnectionError).
+  //
+  // An extra CA from DATABASE_SSL_CA therefore goes in alongside Node's own
+  // root certificates, never instead of them.
+  const extraCa = parseExtraCa(env.DATABASE_SSL_CA);
+  if (extraCa) return { ca: [...rootCertificates, extraCa], checkServerIdentity: () => undefined };
   return { checkServerIdentity: () => undefined };
 }

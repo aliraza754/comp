@@ -25,6 +25,7 @@ import { Redis } from '@upstash/redis';
 import type { AccessControl } from 'better-auth/plugins/access';
 import { mcpOAuthBeforeHook } from './mcp-oauth-hooks';
 import { assertMembershipRouteAllowed } from './membership-route-policy';
+import { getCookieDomain } from './cookie-domain';
 import { mapMicrosoftProfileToUser } from './microsoft-email';
 import { assertMicrosoftSignUpVerified } from './microsoft-sign-up-policy';
 import {
@@ -45,21 +46,6 @@ export {
 } from './origin-policy';
 
 const MAGIC_LINK_EXPIRES_IN_SECONDS = 60 * 60; // 1 hour
-
-/**
- * Determine the cookie domain based on environment.
- */
-function getCookieDomain(): string | undefined {
-  const baseUrl = process.env.BASE_URL || '';
-
-  if (baseUrl.includes('staging.trycomp.ai')) {
-    return '.staging.trycomp.ai';
-  }
-  if (baseUrl.includes('trycomp.ai')) {
-    return '.trycomp.ai';
-  }
-  return undefined;
-}
 
 // ── Custom domain lookup via Redis cache ─────────────────────────────────────
 

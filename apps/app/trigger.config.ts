@@ -32,4 +32,12 @@ export default defineConfig({
     },
   },
   dirs: ['./src/jobs', './src/trigger'],
+  // `src/trigger/lib` only holds helpers the tasks import. Scanning it as task
+  // files bundles `lib/research.ts` and `tasks/scrape/research.ts` to the same
+  // output name, which fails `trigger deploy`. Keeps the default test ignores.
+  ignorePatterns: [
+    '**/*.test.{ts,mts,cts,js,mjs,cjs}',
+    '**/*.spec.{ts,mts,cts,js,mjs,cjs}',
+    '**/trigger/lib/**',
+  ],
 });
